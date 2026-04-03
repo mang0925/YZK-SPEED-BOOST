@@ -4,33 +4,31 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
 
--- Color Palette
+-- === DARK AESTHETIC PALETTE ===
 local COLORS = {
-    MainBG = Color3.fromRGB(20, 25, 30),
-    Border = Color3.fromRGB(140, 80, 255),
-    TextActive = Color3.fromRGB(180, 140, 255),
-    TextInactive = Color3.fromRGB(200, 200, 200)
+    MainBG          = Color3.fromRGB(10, 10, 15),
+    Border          = Color3.fromRGB(160, 60, 255),
+    Accent          = Color3.fromRGB(200, 80, 255),
+    TextPrimary     = Color3.fromRGB(255, 255, 255),
+    TextSecondary   = Color3.fromRGB(200, 200, 220),
+    InputBG         = Color3.fromRGB(25, 25, 35),
+    HeaderON        = Color3.fromRGB(120, 40, 220),
+    HeaderOFF       = Color3.fromRGB(80, 80, 90)
 }
 
--------------------------------------------------------------------------
--- UI CORE ENGINE
--------------------------------------------------------------------------
-local function create(class, props)
-    local obj = Instance.new(class)
-    for k, v in pairs(props) do if k ~= "Parent" then obj[k] = v end end
-    obj.Parent = props.Parent
-    return obj
-end
+-- ==================== TRANSPARENCE DE LA FENÊTRE ====================
+local WindowTransparency = 0.15     -- ← Valeur modifiée : peu transparent (on voit très peu à travers)
 
 -------------------------------------------------------------------------
 -- SPEED CUSTOMIZER MODULE
 -------------------------------------------------------------------------
 local SpeedCustomizer = {
     Enabled = false,
+    Running = true,
     MainFrame = nil,
     MinimizeBtn = nil,
+    CloseBtn = nil,
     ToggleBtn = nil,
-    Title = nil,
     Header = nil,
     SpeedLabel = nil,
     StealLabel = nil,
@@ -46,123 +44,135 @@ local SpeedCustomizer = {
     character = nil,
     hrp = nil,
     hum = nil,
+    
+    HeartbeatConn = nil,
+    JumpConn = nil,
     CharacterConn = nil
 }
 
--- Setup character
 local function setupSpeedCharacter(char)
     SpeedCustomizer.character = char
     SpeedCustomizer.hrp = char:WaitForChild("HumanoidRootPart")
     SpeedCustomizer.hum = char:WaitForChild("Humanoid")
 end
 
--- Create UI
 local function createSpeedUI()
-    local SpeedScreenGui = create("ScreenGui", {
-        Name = "YZK_SpeedUI",
-        ResetOnSpawn = false,
-        Parent = CoreGui
-    })
+    local SpeedScreenGui = Instance.new("ScreenGui")
+    SpeedScreenGui.Name = "YZK_SpeedUI"
+    SpeedScreenGui.ResetOnSpawn = false
+    SpeedScreenGui.Parent = CoreGui
 
-    local MainFrame = create("Frame", {
-        Name = "SpeedMainFrame",
-        Size = UDim2.new(0, 240, 0, 220),
-        Position = UDim2.new(0.5, -120, 0.4, 0),
-        BackgroundColor3 = COLORS.MainBG,
-        BackgroundTransparency = 0.2,
-        BorderSizePixel = 0,
-        Active = true,
-        Draggable = true,
-        Parent = SpeedScreenGui
-    })
-    create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = MainFrame})
-    create("UIStroke", {Color = COLORS.Border, Thickness = 2, Parent = MainFrame})
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "SpeedMainFrame"
+    MainFrame.Size = UDim2.new(0, 270, 0, 245)
+    MainFrame.Position = UDim2.new(0.5, -135, 0.4, 0)
+    MainFrame.BackgroundColor3 = COLORS.MainBG
+    MainFrame.BackgroundTransparency = WindowTransparency   -- Transparence appliquée ici
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    MainFrame.Parent = SpeedScreenGui
 
-    -- Titre (toujours visible)
-    local Title = create("TextLabel", {
-        Size = UDim2.new(1, -60, 0, 30),
-        Position = UDim2.new(0, 12, 0, 8),
-        BackgroundTransparency = 1,
-        Text = "YZK Speed Customizer",
-        TextColor3 = COLORS.TextActive,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Font = Enum.Font.GothamBold,
-        Parent = MainFrame
-    })
-    SpeedCustomizer.Title = Title
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+    local stroke = Instance.new("UIStroke", MainFrame)
+    stroke.Color = COLORS.Border
+    stroke.Thickness = 2.5
 
-    -- Barre des 3 lignes (toujours visible)
-    local MinimizeBar = create("TextButton", {
-        Name = "MinimizeBar",
-        Size = UDim2.new(0, 40, 0, 24),
-        Position = UDim2.new(1, -48, 0, 8),
-        BackgroundColor3 = Color3.fromRGB(70, 70, 80),
-        Text = "≡",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextSize = 18,
-        Font = Enum.Font.GothamBold,
-        BorderSizePixel = 0,
-        Parent = MainFrame
-    })
-    create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = MinimizeBar})
-    SpeedCustomizer.MinimizeBtn = MinimizeBar
+    -- Titre
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Size = UDim2.new(1, -80, 0, 38)
+    Title.Position = UDim2.new(0, 18, 0, 8)
+    Title.BackgroundTransparency = 1
+    Title.Text = "YZK Speed Boost"
+    Title.TextColor3 = COLORS.Accent
+    Title.TextSize = 19
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Font = Enum.Font.GothamBlack
+    Title.Parent = MainFrame
+
+    -- Bouton Minimize "–"
+    local MinimizeBtn = Instance.new("TextButton")
+    MinimizeBtn.Name = "MinimizeBtn"
+    MinimizeBtn.Size = UDim2.new(0, 26, 0, 26)
+    MinimizeBtn.Position = UDim2.new(1, -62, 0, 11)
+    MinimizeBtn.BackgroundTransparency = 1
+    MinimizeBtn.Text = "–"
+    MinimizeBtn.TextColor3 = COLORS.TextPrimary
+    MinimizeBtn.TextSize = 24
+    MinimizeBtn.Font = Enum.Font.GothamBold
+    MinimizeBtn.Parent = MainFrame
+    SpeedCustomizer.MinimizeBtn = MinimizeBtn
+
+    -- Bouton Close "×"
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Name = "CloseBtn"
+    CloseBtn.Size = UDim2.new(0, 26, 0, 26)
+    CloseBtn.Position = UDim2.new(1, -32, 0, 11)
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Text = "×"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    CloseBtn.TextSize = 26
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Parent = MainFrame
+    SpeedCustomizer.CloseBtn = CloseBtn
 
     -- Header ON/OFF
-    local Header = create("Frame", {
-        Size = UDim2.new(1, -20, 0, 45),
-        Position = UDim2.new(0, 10, 0, 45),
-        BackgroundColor3 = Color3.fromRGB(200, 60, 60),
-        BorderSizePixel = 0,
-        Parent = MainFrame
-    })
-    create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Header})
-
-    local ToggleBtn = create("TextButton", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Text = "OFF",
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextSize = 20,
-        Font = Enum.Font.GothamBold,
-        Parent = Header
-    })
-    SpeedCustomizer.ToggleBtn = ToggleBtn
+    local Header = Instance.new("Frame")
+    Header.Size = UDim2.new(1, -20, 0, 48)
+    Header.Position = UDim2.new(0, 10, 0, 54)
+    Header.BackgroundColor3 = COLORS.HeaderOFF
+    Header.BorderSizePixel = 0
+    Header.Parent = MainFrame
+    Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
     SpeedCustomizer.Header = Header
 
-    -- === INPUTS (Speed, Steal, Jump) ===
-    local function createInputRow(labelText, defaultValue, yPos)
-        local label = create("TextLabel", {
-            Size = UDim2.new(0.55, 0, 0, 30),
-            Position = UDim2.new(0, 15, 0, yPos),
-            BackgroundTransparency = 1,
-            Text = labelText,
-            TextColor3 = COLORS.TextInactive,
-            TextSize = 15,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Font = Enum.Font.Gotham,
-            Parent = MainFrame
-        })
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Size = UDim2.new(1, 0, 1, 0)
+    ToggleBtn.BackgroundTransparency = 1
+    ToggleBtn.Text = "OFF"
+    ToggleBtn.TextColor3 = COLORS.TextPrimary
+    ToggleBtn.TextSize = 22
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.Parent = Header
+    SpeedCustomizer.ToggleBtn = ToggleBtn
 
-        local box = create("TextBox", {
-            Size = UDim2.new(0, 85, 0, 32),
-            Position = UDim2.new(1, -100, 0, yPos),
-            BackgroundColor3 = Color3.fromRGB(30, 35, 40),
-            Text = tostring(defaultValue),
-            TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextSize = 16,
-            Font = Enum.Font.GothamBold,
-            ClearTextOnFocus = false,
-            Parent = MainFrame
-        })
-        create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = box})
+    -- === INPUT ROWS ===
+    local function createInputRow(labelText, defaultValue, yPos)
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0.55, 0, 0, 30)
+        label.Position = UDim2.new(0, 18, 0, yPos)
+        label.BackgroundTransparency = 1
+        label.Text = labelText
+        label.TextColor3 = COLORS.TextSecondary
+        label.TextSize = 15
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Font = Enum.Font.Gotham
+        label.Parent = MainFrame
+
+        local box = Instance.new("TextBox")
+        box.Size = UDim2.new(0, 92, 0, 36)
+        box.Position = UDim2.new(1, -110, 0, yPos)
+        box.BackgroundColor3 = COLORS.InputBG
+        box.Text = tostring(defaultValue)
+        box.TextColor3 = COLORS.TextPrimary
+        box.TextSize = 17
+        box.Font = Enum.Font.GothamBold
+        box.ClearTextOnFocus = false
+        box.Parent = MainFrame
+
+        Instance.new("UICorner", box).CornerRadius = UDim.new(0, 8)
+        local boxStroke = Instance.new("UIStroke", box)
+        boxStroke.Color = COLORS.Border
+        boxStroke.Thickness = 1.5
+        boxStroke.Transparency = 0.6
 
         return label, box
     end
 
-    local SpeedLabel, SpeedInput   = createInputRow("Speed", SpeedCustomizer.SpeedValue, 105)
-    local StealLabel, StealInput   = createInputRow("Steal Spd", SpeedCustomizer.StealValue, 145)
-    local JumpLabel, JumpInput     = createInputRow("Jump", SpeedCustomizer.JumpValue, 185)
+    local SpeedLabel,  SpeedInput  = createInputRow("Speed",     58, 118)
+    local StealLabel,  StealInput  = createInputRow("Steal Spd", 29, 158)
+    local JumpLabel,   JumpInput   = createInputRow("Jump",      80, 198)
 
     SpeedCustomizer.SpeedLabel = SpeedLabel
     SpeedCustomizer.StealLabel = StealLabel
@@ -171,14 +181,19 @@ local function createSpeedUI()
     SpeedCustomizer.StealInput = StealInput
     SpeedCustomizer.JumpInput  = JumpInput
 
-    -- Toggle ON/OFF
+    -- Toggle
     ToggleBtn.MouseButton1Click:Connect(function()
         SpeedCustomizer.Enabled = not SpeedCustomizer.Enabled
-        ToggleBtn.Text = SpeedCustomizer.Enabled and "ON" or "OFF"
-        Header.BackgroundColor3 = SpeedCustomizer.Enabled and Color3.fromRGB(80, 180, 80) or Color3.fromRGB(200, 60, 60)
+        if SpeedCustomizer.Enabled then
+            ToggleBtn.Text = "ON"
+            Header.BackgroundColor3 = COLORS.HeaderON
+        else
+            ToggleBtn.Text = "OFF"
+            Header.BackgroundColor3 = COLORS.HeaderOFF
+        end
     end)
 
-    -- Validation des inputs
+    -- Input validation
     local function validateInput(box, varName, min, max)
         box.FocusLost:Connect(function()
             local num = tonumber(box.Text)
@@ -192,42 +207,43 @@ local function createSpeedUI()
         end)
     end
 
-    validateInput(SpeedInput, "SpeedValue", 1, 200)
-    validateInput(StealInput, "StealValue", 1, 200)
-    validateInput(JumpInput, "JumpValue", 1, 200)
+    validateInput(SpeedInput,  "SpeedValue",  1, 200)
+    validateInput(StealInput, "StealValue",  1, 200)
+    validateInput(JumpInput,  "JumpValue",   1, 200)
 
-    -- ===================== MINIMIZE / RESTORE =====================
-    local originalSize = UDim2.new(0, 240, 0, 220)
-    local minimizedSize = UDim2.new(0, 240, 0, 105)   -- Titre + Barre + ON/OFF seulement
+    -- Minimize
+    local originalSize = UDim2.new(0, 270, 0, 245)
+    local minimizedSize = UDim2.new(0, 270, 0, 115)
 
-    MinimizeBar.MouseButton1Click:Connect(function()
+    MinimizeBtn.MouseButton1Click:Connect(function()
         SpeedCustomizer.IsMinimized = not SpeedCustomizer.IsMinimized
-
         if SpeedCustomizer.IsMinimized then
-            -- Mode réduit : seulement Titre + ≡ + ON/OFF
             MainFrame.Size = minimizedSize
-            
-            SpeedCustomizer.SpeedLabel.Visible = false
-            SpeedCustomizer.StealLabel.Visible = false
-            SpeedCustomizer.JumpLabel.Visible = false
-            SpeedCustomizer.SpeedInput.Visible = false
-            SpeedCustomizer.StealInput.Visible = false
-            SpeedCustomizer.JumpInput.Visible = false
-
-            Header.Position = UDim2.new(0, 10, 0, 45)
+            SpeedLabel.Visible = false
+            StealLabel.Visible = false
+            JumpLabel.Visible = false
+            SpeedInput.Visible = false
+            StealInput.Visible = false
+            JumpInput.Visible = false
         else
-            -- Mode normal
             MainFrame.Size = originalSize
-            
-            SpeedCustomizer.SpeedLabel.Visible = true
-            SpeedCustomizer.StealLabel.Visible = true
-            SpeedCustomizer.JumpLabel.Visible = true
-            SpeedCustomizer.SpeedInput.Visible = true
-            SpeedCustomizer.StealInput.Visible = true
-            SpeedCustomizer.JumpInput.Visible = true
-
-            Header.Position = UDim2.new(0, 10, 0, 45)
+            SpeedLabel.Visible = true
+            StealLabel.Visible = true
+            JumpLabel.Visible = true
+            SpeedInput.Visible = true
+            StealInput.Visible = true
+            JumpInput.Visible = true
         end
+    end)
+
+    -- Close Button
+    CloseBtn.MouseButton1Click:Connect(function()
+        SpeedCustomizer.Running = false
+        if SpeedCustomizer.HeartbeatConn then SpeedCustomizer.HeartbeatConn:Disconnect() end
+        if SpeedCustomizer.JumpConn then SpeedCustomizer.JumpConn:Disconnect() end
+        if SpeedCustomizer.CharacterConn then SpeedCustomizer.CharacterConn:Disconnect() end
+        SpeedScreenGui:Destroy()
+        print("YZK Speed Boost → Fully closed and stopped")
     end)
 
     return SpeedScreenGui
@@ -241,9 +257,9 @@ SpeedCustomizer.CharacterConn = lp.CharacterAdded:Connect(setupSpeedCharacter)
 
 SpeedCustomizer.SpeedUI = createSpeedUI()
 
--- Speed logic
-RunService.Heartbeat:Connect(function()
-    if not SpeedCustomizer.Enabled or not SpeedCustomizer.hrp or not SpeedCustomizer.hum then return end
+-- Speed & Jump logic
+SpeedCustomizer.HeartbeatConn = RunService.Heartbeat:Connect(function()
+    if not SpeedCustomizer.Running or not SpeedCustomizer.Enabled or not SpeedCustomizer.hrp or not SpeedCustomizer.hum then return end
     local moveDir = SpeedCustomizer.hum.MoveDirection
     if moveDir.Magnitude > 0 then
         local isSteal = SpeedCustomizer.hum.WalkSpeed < 25
@@ -256,15 +272,11 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Jump logic
-UserInputService.JumpRequest:Connect(function()
-    if SpeedCustomizer.Enabled and SpeedCustomizer.hum and SpeedCustomizer.hum.FloorMaterial ~= Enum.Material.Air then
-        SpeedCustomizer.hrp.AssemblyLinearVelocity = Vector3.new(
-            SpeedCustomizer.hrp.AssemblyLinearVelocity.X,
-            SpeedCustomizer.JumpValue,
-            SpeedCustomizer.hrp.AssemblyLinearVelocity.Z
-        )
-    end
+SpeedCustomizer.JumpConn = UserInputService.JumpRequest:Connect(function()
+    if not SpeedCustomizer.Running or not SpeedCustomizer.Enabled or not SpeedCustomizer.hum or SpeedCustomizer.hum.FloorMaterial == Enum.Material.Air then return end
+    SpeedCustomizer.hrp.AssemblyLinearVelocity = Vector3.new(
+        SpeedCustomizer.hrp.AssemblyLinearVelocity.X,
+        SpeedCustomizer.JumpValue,
+        SpeedCustomizer.hrp.AssemblyLinearVelocity.Z
+    )
 end)
-
-print("YZK Speed Customizer Loaded - Clique sur ≡ pour réduire/agrandir")
